@@ -63,3 +63,87 @@ exports.create = async (req, res)=>{
         })
     }
 }
+
+//INICIAR SESIÓN
+//autenticar que la persona pase su email y contraseña, coincidan y se le envía un token
+exports.login = async(req, res) =>{
+    //obtener email y pasword del formulario
+    const {email, password} = req.body
+    try {
+        const foundUser = await User.findOne({email}) //objeto
+        //validacion: si no hubo usuario:
+        if(!foundUser){
+            return res.status(400).json({
+                msg:"El usuario o contraseña son incorrectos"
+            })
+        }
+        //si todo esta bien, el usuario fue encontrado, entonces evaluamos la contraseña
+
+        const verifiedPass = await bcryptjs.compare(password, foundUser.password)
+       //si el password no coincide:
+        if ( !verifiedPass) {
+            return res.status(400).json({
+                msg:"El usuario o la contraseña no coinciden"
+            })
+        } 
+        console.log("foundUser:",foundUser)
+        //si el password si coincide y es correcto, generamos un json web token
+            //1. establecer payload (datos de usuario)
+            const payload ={
+                user:{
+                    id:foundUser._id,
+
+                }
+            }
+            //firma del jwt
+            jwt.sign(
+                payload,
+                process.env.SECRET,{
+                    expiresIn:360000
+                },//generamos error, si existe
+                (error, token)=>{
+                    if(error) throw error
+                    res.json({
+                        msg:"Inicio de sesión exitoso.",
+                        data:token
+                    })
+                }
+            )
+            return
+
+    } catch (error) {
+        console.log(error)
+        res.status(500)({
+            
+            msg:"Hubo un problema con la autenticacion",
+            data:error
+        })
+    }
+
+
+}
+
+
+//VERIFICACION DE USUARIO
+//cuando accedemos a diferentes rutas (como en guitarras o tiendas) preguntar si el usuario tiene permisos o no
+//para confirmarlo se le pide al usuario el token. una rupa que pide tokens para verificar
+exports.verifyToken = async(req, res)=>{
+  //necesitamos desencriptar el proceso de token
+
+    try {
+        //1. BUSCAR EL ID DEL USUARIO (DEL TOKEN ABIERTO) EN BASE DE DATOS
+    const foundUser = await User.findById(req.user.id).select("-password") //con esto evitamos que pase el password a la verificacion
+       return res.json({
+           msg:"datos de usuario encontrados",
+           data:foundUser
+       })
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            msg:"Token fallado, intentar de nuevo",
+            data:error
+        })
+        
+    }
+}
