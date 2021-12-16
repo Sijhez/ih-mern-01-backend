@@ -52,3 +52,27 @@ exports.readOneStore = async (req, res) =>{
         })
     }
 }
+
+exports.editStore = async(req, res) =>{
+    const{id}= req.params
+    const {
+        nombre, domicilio, telefono
+    } = req.body
+
+    try {
+        const updatedStore = await Store.findByIdAndUpdate(
+            id,{
+                nombre, domicilio, telefono
+            },{new:true})
+            res.json({
+                msg:"Tienda actualizada con éxito",
+                data:updatedStore
+            })
+    } catch (error) {
+        res.status(500).json({
+            msg: "Hubo un error actualizando la tienda brother",
+            error:error
+        })
+        
+    }
+}
